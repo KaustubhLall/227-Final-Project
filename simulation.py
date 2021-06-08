@@ -1,3 +1,4 @@
+from icecream import ic
 from mkl_random.mklrand import choice, uniform
 from numpy.random.mtrand import sample
 
@@ -7,57 +8,60 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 
-INCUBATION_PERIOD = 5  # time before symptoms show up, and you become infectious
-ACTIVE_DISEASE_PERIOD = INCUBATION_PERIOD + 10  # average duration of incubation + time to recover
-RECOVERY = 0.02  # chance to survive covid
 
+def initialize_graph(g, susceptible=True, exposed=False, infectious=False, recovered=False):
+    p = {
+        'alive'       : True,
+        'susceptible' : susceptible,
+        'exposed'     : exposed,
+        'infectious'  : infectious,
+        'recovered'   : recovered,
+        'days_exposed': 0,
+        }
+    params = {}
 
-class Node:
-    def __init__(self, susceptible=True, exposed=False, infectious=False, recovered=False):
-        self.alive = True
-        self.susceptible = susceptible
-        self.exposed = exposed
-        self.infectious = infectious
-        self.recovered = recovered
-        self.days_exposed = 0  # how many days
+    for n in g.nodes:
+        params[n] = p
+
+    nx.set_node_attributes(g, params)
 
 
 def action_recover_node(g, n):
     """Logic to recover a node from terminal state"""
-    (g.nodes[n]).infectious = False
-    (g.nodes[n]).exposed = False
-    (g.nodes[n]).recovered = True
+    (g.nodes[n])['infectious'] = False
+    (g.nodes[n])['exposed'] = False
+    (g.nodes[n])['recovered'] = True
 
 
 def action_kill_node(g, n):
     """Logic to kill a node which does not survive covid after active duration"""
-    assert g.nodes[n].alive
+    assert g.nodes[n]['alive']
     # death logic
-    (g.nodes[n]).alive = False
-    (g.nodes[n]).infectious = False
-    (g.nodes[n]).exposed = False
-    (g.nodes[n]).days_exposed = -inf
+    (g.nodes[n])['alive'] = False
+    (g.nodes[n])['infectious'] = False
+    (g.nodes[n])['exposed'] = False
+    (g.nodes[n])['days_exposed'] = -inf
 
 
 def action_infect_node(g, n):
-    """Logic to infect a node, generally called by neighbors"""
-    if g.nodes[n].recovered or not g.nodes[n].alive:
+    """Logic to infect a node, generally called by neighbors. Will infect with CHANCE_INFECTION."""
+    if g.nodes[n]['recovered'] or not g.nodes[n]['alive']:
         # ignore nodes that have built an immunity
         return
-    if not g.nodes[n].exposed:
-        (g.nodes[n]).exposed = True
-        (g.nodes[n]).days_exposed = -1
+    if not g.nodes[n]['exposed'] and uniform() < CHANCE_INFECTION:
+        (g.nodes[n])['exposed'] = True
+        (g.nodes[n])['days_exposed'] = -1
 
 
 def process_exposed_nodes(g, n):
     """Logic to process exposed nodes and make them infectious"""
-    if not g.nodes[n].infectious and g.nodes[n].days_exposed > INCUBATION_PERIOD:
-        (g.nodes[n]).infectious = True
+    if not g.nodes[n]['infectious'] and g.nodes[n]['days_exposed'] > INCUBATION_PERIOD:
+        (g.nodes[n])['infectious'] = True
 
 
 def process_terminal_node(g, n):
     """Logic to process terminal nodes, aka those at the end of the active disease period"""
-    if g.nodes[n].days_exposed > ACTIVE_DISEASE_PERIOD:
+    if g.nodes[n]['days_exposed'] > ACTIVE_DISEASE_PERIOD:
         # handle recovery and death
         if uniform() < RECOVERY:
             action_kill_node(g, n)
@@ -70,30 +74,54 @@ def prob_interaction(n1, n2):
     return 1
 
 
-def simulate_one_step(g: nx.Graph, r0):
+def simulate_one_step(g: nx.Graph):
     """runs one day in a covid-19 simulation"""
     # infect an initial proportion of the population
-    for node in g.nodes:
+    for n in g.nodes:
         # increment day if exposed
-        if node.exposed:
-            node.days_exposed += 1
+        node = g.nodes[n]
+        if node['exposed']:
+            node['days_exposed'] += 1
 
         # process the node's infection status
-        process_exposed_nodes(g, node)
+        process_exposed_nodes(g, n)
 
         # process the node's terminal status
-        process_terminal_node(g, node)
+        process_terminal_node(g, n)
 
         # process the node's chance to infect its neighbors
-        if node.infectious:
+        if node['infectious']:
             [action_infect_node(g, n) for n in node.neighbors() if uniform() < prob_interaction(n, node)]
 
+    disg(g)
+    return g
 
-def simulate(r0):
+
+def disg(g):
+    for n in g.nodes:
+        ic(g.nodes[n], n)
+
+
+def simulate(r0, steps=100):
     """Driver function to run a simulation for a given number of days with given input parameters"""
-    g = generate_graph()
-    n = len(g.nodes)
-    initial_infected = choice(list(range(n)), r0 * n)
+    g = generate_graph(10, 1)
+
+    # initialize the graph
+    initialize_graph(g)
+
+    N = len(g.nodes)
+    initial_infected = choice(list(range(N)), int(r0 * N))
+    [action_infect_node(g, n) for n in initial_infected]
+
+    for s in range(steps):
+        simulate_one_step(g)
+    return g
+
+
+def generate_graph(*args):
+    """Selector function for which graph generator to use"""
+    f = generate_barabasi
+    return f(*args)
 
 
 def generate_barabasi(nodes, edges) -> nx.Graph:
@@ -127,3 +155,6 @@ def generate_Watts(nodes, knn, p) -> nx.Graph:
     watts = nx.watts_strogatz_graph(nodes, knn, p)
 
     return watts
+
+
+simulate(0.2)

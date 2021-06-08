@@ -86,10 +86,32 @@ def simulate(r0):
     initial_infected = choice(list(range(n)), r0 * n)
 
 
-def generate_graph() -> nx.Graph:
+def generate_barabasi(nodes, edges) -> nx.Graph:
     """
     Generate a social-network graph to represent a given population.
-
     :return:
     """
-    pass
+
+    g_barabasi = nx.barabasi_albert_graph(nodes, edges)
+
+    return g_barabasi
+
+def generate_eerg(nodes, p) -> nx.Graph:
+    """
+    Generate a social-network graph to represent a given population.
+    :return:
+    """
+
+    eerg = nx.erdos_renyi_graph(nodes, p)
+
+    return eerg
+
+def generate_Watts(nodes, knn, p) -> nx.Graph:
+    """
+    Generate a social-network graph to represent a given population.
+    :return:
+    """
+
+    watts = nx.watts_strogatz_graph(nodes, knn, p)
+
+    return watts

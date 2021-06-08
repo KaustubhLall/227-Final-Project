@@ -12,3 +12,11 @@ class Node():
 
 def simulate_one_step(g: nx.Graph):
     pass
+
+
+def generate_graph():
+    """
+    Generate a social-network graph to represent a given population.
+    :return:
+    """
+    pass

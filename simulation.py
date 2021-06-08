@@ -76,9 +76,14 @@ def simulate_one_step(g: nx.Graph, r0):
     # infect an initial proportion of the population
     n = len(g.nodes)
 
-    initial_infected = choice(list(range(n)), r0 * n)
+    for node in g.nodes:
+        pass
 
-    pass
+def simulate(r0):
+    """Driver function to run a simulation for a given number of days with given input parameters"""
+    g = generate_graph()
+    n = len(g.nodes)
+    initial_infected = choice(list(range(n)), r0 * n)
 
 
 def generate_graph() -> nx.Graph:

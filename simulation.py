@@ -73,18 +73,16 @@ def prob_interaction(n1, n2):
 def simulate_one_step(g: nx.Graph, r0):
     """runs one day in a covid-19 simulation"""
     # infect an initial proportion of the population
-    n = len(g.nodes)
-
     for node in g.nodes:
         # increment day if exposed
         if node.exposed:
             node.days_exposed += 1
 
         # process the node's infection status
-        process_exposed_nodes(g, n)
+        process_exposed_nodes(g, node)
 
         # process the node's terminal status
-        process_terminal_node(g, n)
+        process_terminal_node(g, node)
 
         # process the node's chance to infect its neighbors
         if node.infectious:

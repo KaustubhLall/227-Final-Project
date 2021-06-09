@@ -156,8 +156,8 @@ def debug_info(g, s):
 
 def simulate(r0, steps=100):
     """Driver function to run a simulation for a given number of days with given input parameters"""
-    # g = generate_graph(10000, 4)
-    g = generate_Watts(100000, 4, 0.01)
+    g = generate_graph(100000, 5)
+    # g = generate_Watts(100000, 4, 0.01)
     # initialize the graph
     initialize_graph(g)
 

@@ -33,6 +33,7 @@ def action_recover_node(g, n):
     (g.nodes[n])['exposed'] = False
     (g.nodes[n])['recovered'] = True
     (g.nodes[n])['prob_transmission'] = 0
+    (g.nodes[n])['susceptible'] = False
 
 
 def action_kill_node(g, n):
@@ -44,6 +45,7 @@ def action_kill_node(g, n):
     (g.nodes[n])['exposed'] = False
     (g.nodes[n])['days_exposed'] = -inf
     (g.nodes[n])['prob_transmission'] = 0
+    (g.nodes[n])['susceptible'] = False
 
 
 def action_infect_node(g, n, p, forced=False):
@@ -60,13 +62,18 @@ def action_infect_node(g, n, p, forced=False):
 
 def process_exposed_nodes(g, n):
     """Logic to process exposed nodes and make them infectious"""
-    if not g.nodes[n]['infectious'] and g.nodes[n]['days_exposed'] > INCUBATION_PERIOD:
-        (g.nodes[n])['infectious'] = True
-        (g.nodes[n])['prob_transmission'] = CHANCE_TRANSMISSION_INFECTED
+    if g.nodes[n]['exposed']:
+        if not g.nodes[n]['infectious'] and g.nodes[n]['days_exposed'] > INCUBATION_PERIOD:
+            (g.nodes[n])['infectious'] = True
+            (g.nodes[n])['prob_transmission'] = CHANCE_TRANSMISSION_INFECTED
 
 
 def process_terminal_node(g, n):
     """Logic to process terminal nodes, aka those at the end of the active disease period"""
+
+    if not g.nodes[n]['alive'] or g.nodes[n]['recovered']:
+        return
+
     if g.nodes[n]['days_exposed'] > ACTIVE_DISEASE_PERIOD:
         # handle recovery and death
         if uniform() < RECOVERY:
@@ -109,29 +116,42 @@ def disg(g):
 
 
 def debug_info(g, s):
-    exposed = 0
-    alive = 0
-    infectious = 0
-    recovered = 0
-    for n in g.nodes:
-        if g.nodes[n]['exposed']:
-            exposed += 1
-        if g.nodes[n]['alive']:
-            alive += 1
-        if g.nodes[n]['infectious']:
-            infectious += 1
-        if g.nodes[n]['recovered']:
-            recovered += 1
-    print('***debug %s ***' % s)
-    print('exposed:', exposed)
-    print('alive:', alive)
-    print('infectious:', infectious)
-    print('recovered:', recovered)
+    # exposed = 0
+    # alive = 0
+    # infectious = 0
+    # recovered = 0
 
+    params = {
+        'exposed'   : 0,
+        'alive'     : 0,
+        'infectious': 0,
+        'recovered' : 0,
+        'susceptible' : 0,
+        }
+
+    for n in g.nodes:
+        for p in params.keys():
+            if g.nodes[n][p]:
+                params[p] += 1
+        # if g.nodes[n]['exposed']:
+        #     exposed += 1
+        # if g.nodes[n]['alive']:
+        #     alive += 1
+        # if g.nodes[n]['infectious']:
+        #     infectious += 1
+        # if g.nodes[n]['recovered']:
+        #     recovered += 1
+    ic('***debug %s ***' % s)
+    # print('exposed:', exposed)
+    # print('alive:', alive)
+    # print('infectious:', infectious)
+    # print('recovered:', recovered)
+    ic(params)
+    return params
 
 def simulate(r0, steps=100):
     """Driver function to run a simulation for a given number of days with given input parameters"""
-    g = generate_graph(10, 1)
+    g = generate_graph(1000, 2)
 
     # initialize the graph
     initialize_graph(g)
@@ -189,4 +209,4 @@ def generate_Watts(nodes, knn, p) -> nx.Graph:
     return watts
 
 
-simulate(0.2, 10)
+simulate(0.2, 100)

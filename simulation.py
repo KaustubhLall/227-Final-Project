@@ -11,12 +11,13 @@ import numpy as np
 
 def initialize_graph(g, susceptible=True, exposed=False, infectious=False, recovered=False):
     p = {
-        'alive'       : True,
-        'susceptible' : susceptible,
-        'exposed'     : exposed,
-        'infectious'  : infectious,
-        'recovered'   : recovered,
-        'days_exposed': 0,
+        'alive'            : True,
+        'susceptible'      : susceptible,
+        'exposed'          : exposed,
+        'infectious'       : infectious,
+        'recovered'        : recovered,
+        'days_exposed'     : 0,
+        'prob_transmission': 0
         }
     params = {}
 
@@ -31,6 +32,7 @@ def action_recover_node(g, n):
     (g.nodes[n])['infectious'] = False
     (g.nodes[n])['exposed'] = False
     (g.nodes[n])['recovered'] = True
+    (g.nodes[n])['prob_transmission'] = 0
 
 
 def action_kill_node(g, n):
@@ -41,23 +43,26 @@ def action_kill_node(g, n):
     (g.nodes[n])['infectious'] = False
     (g.nodes[n])['exposed'] = False
     (g.nodes[n])['days_exposed'] = -inf
+    (g.nodes[n])['prob_transmission'] = 0
 
 
-def action_infect_node(g, n, forced=False):
-    """Logic to infect a node, generally called by neighbors. Will infect with CHANCE_INFECTION."""
+def action_infect_node(g, n, p, forced=False):
+    """Logic to infect a node, generally called by neighbors. Will infect with CHANCE_TRANSMISSION_INFECTED."""
     if g.nodes[n]['recovered'] or not g.nodes[n]['alive']:
         # ignore nodes that have built an immunity
         return
     if not g.nodes[n]['exposed']:
-        if forced or ((not forced) and uniform() < CHANCE_INFECTION):
+        if forced or ((not forced) and uniform() < p):
             (g.nodes[n])['exposed'] = True
             (g.nodes[n])['days_exposed'] = -1
+            (g.nodes[n])['prob_transmission'] = CHANCE_TRANSMISSION_EXPOSED
 
 
 def process_exposed_nodes(g, n):
     """Logic to process exposed nodes and make them infectious"""
     if not g.nodes[n]['infectious'] and g.nodes[n]['days_exposed'] > INCUBATION_PERIOD:
         (g.nodes[n])['infectious'] = True
+        (g.nodes[n])['prob_transmission'] = CHANCE_TRANSMISSION_INFECTED
 
 
 def process_terminal_node(g, n):
@@ -92,15 +97,36 @@ def simulate_one_step(g: nx.Graph):
 
         # process the node's chance to infect its neighbors
         if node['infectious']:
-            [action_infect_node(g, x) for x in g.neighbors(n) if uniform() < prob_interaction(x, node)]
+            [action_infect_node(g, x, node['prob_transmission']) for x in g.neighbors(n) if
+             uniform() < prob_interaction(x, node)]
 
-    disg(g)
     return g
 
 
 def disg(g):
     for n in g.nodes:
         print(g.nodes[n], n)
+
+
+def debug_info(g, s):
+    exposed = 0
+    alive = 0
+    infectious = 0
+    recovered = 0
+    for n in g.nodes:
+        if g.nodes[n]['exposed']:
+            exposed += 1
+        if g.nodes[n]['alive']:
+            alive += 1
+        if g.nodes[n]['infectious']:
+            infectious += 1
+        if g.nodes[n]['recovered']:
+            recovered += 1
+    print('***debug %s ***' % s)
+    print('exposed:', exposed)
+    print('alive:', alive)
+    print('infectious:', infectious)
+    print('recovered:', recovered)
 
 
 def simulate(r0, steps=100):
@@ -114,11 +140,13 @@ def simulate(r0, steps=100):
     initial_infected = choice(list(range(N)), int(r0 * N))
     if len(initial_infected) == 0:
         initial_infected = [0]
-    [action_infect_node(g, n, forced=True) for n in initial_infected]
+    [action_infect_node(g, n, 1, forced=True) for n in initial_infected]
 
     for s in range(steps):
         g = simulate_one_step(g)
-        print('\n\n\n\n\nNEW DAY\n\n\n\n')
+        # disg(g)
+        # print('\n\n\n\n\nNEW DAY\n\n\n\n')
+        debug_info(g, s)
     return g
 
 

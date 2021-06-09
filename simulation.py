@@ -43,14 +43,15 @@ def action_kill_node(g, n):
     (g.nodes[n])['days_exposed'] = -inf
 
 
-def action_infect_node(g, n):
+def action_infect_node(g, n, forced=False):
     """Logic to infect a node, generally called by neighbors. Will infect with CHANCE_INFECTION."""
     if g.nodes[n]['recovered'] or not g.nodes[n]['alive']:
         # ignore nodes that have built an immunity
         return
-    if not g.nodes[n]['exposed'] and uniform() < CHANCE_INFECTION:
-        (g.nodes[n])['exposed'] = True
-        (g.nodes[n])['days_exposed'] = -1
+    if not g.nodes[n]['exposed']:
+        if forced or ((not forced) and uniform() < CHANCE_INFECTION):
+            (g.nodes[n])['exposed'] = True
+            (g.nodes[n])['days_exposed'] = -1
 
 
 def process_exposed_nodes(g, n):
@@ -91,7 +92,7 @@ def simulate_one_step(g: nx.Graph):
 
         # process the node's chance to infect its neighbors
         if node['infectious']:
-            [action_infect_node(g, n) for n in node.neighbors() if uniform() < prob_interaction(n, node)]
+            [action_infect_node(g, x) for x in g.neighbors(n) if uniform() < prob_interaction(x, node)]
 
     disg(g)
     return g
@@ -99,7 +100,7 @@ def simulate_one_step(g: nx.Graph):
 
 def disg(g):
     for n in g.nodes:
-        ic(g.nodes[n], n)
+        print(g.nodes[n], n)
 
 
 def simulate(r0, steps=100):
@@ -111,10 +112,13 @@ def simulate(r0, steps=100):
 
     N = len(g.nodes)
     initial_infected = choice(list(range(N)), int(r0 * N))
-    [action_infect_node(g, n) for n in initial_infected]
+    if len(initial_infected) == 0:
+        initial_infected = [0]
+    [action_infect_node(g, n, forced=True) for n in initial_infected]
 
     for s in range(steps):
-        simulate_one_step(g)
+        g = simulate_one_step(g)
+        print('\n\n\n\n\nNEW DAY\n\n\n\n')
     return g
 
 
@@ -157,4 +161,4 @@ def generate_Watts(nodes, knn, p) -> nx.Graph:
     return watts
 
 
-simulate(0.2)
+simulate(0.2, 10)

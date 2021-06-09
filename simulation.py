@@ -50,12 +50,17 @@ def action_kill_node(g, n):
 
 def action_infect_node(g, n, p, forced=False):
     """Logic to infect a node, generally called by neighbors. Will infect with CHANCE_TRANSMISSION_INFECTED."""
-    if g.nodes[n]['recovered'] or not g.nodes[n]['alive']:
+    if not g.nodes[n]['alive']:
         # ignore nodes that have built an immunity
         return
+
+    if g.nodes[n]['recovered']:
+        return
+
     if not g.nodes[n]['exposed']:
         if forced or ((not forced) and uniform() < p):
             (g.nodes[n])['exposed'] = True
+            (g.nodes[n])['susceptible'] = False
             (g.nodes[n])['days_exposed'] = -1
             (g.nodes[n])['prob_transmission'] = CHANCE_TRANSMISSION_EXPOSED
 
@@ -151,8 +156,8 @@ def debug_info(g, s):
 
 def simulate(r0, steps=100):
     """Driver function to run a simulation for a given number of days with given input parameters"""
-    g = generate_graph(1000, 2)
-
+    # g = generate_graph(10000, 4)
+    g = generate_Watts(100000, 4, 0.01)
     # initialize the graph
     initialize_graph(g)
 
@@ -209,4 +214,4 @@ def generate_Watts(nodes, knn, p) -> nx.Graph:
     return watts
 
 
-simulate(0.2, 100)
+simulate(0.2, 365)

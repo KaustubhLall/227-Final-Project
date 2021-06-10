@@ -7,6 +7,8 @@ from constants import *
 import networkx as nx
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import time
 
 
 def initialize_graph(g, susceptible=True, exposed=False, infectious=False, recovered=False):
@@ -120,29 +122,43 @@ def disg(g):
         print(g.nodes[n], n)
 
 
-def debug_info(g, s, verbose=False):
+def debug_info(g, s):
+    # exposed = 0
+    # alive = 0
+    # infectious = 0
+    # recovered = 0
+
     params = {
-        'exposed'    : 0,
-        'alive'      : 0,
-        'infectious' : 0,
-        'recovered'  : 0,
-        'susceptible': 0,
+        'exposed'   : 0,
+        'alive'     : 0,
+        'infectious': 0,
+        'recovered' : 0,
+        'susceptible' : 0,
         }
 
     for n in g.nodes:
         for p in params.keys():
             if g.nodes[n][p]:
                 params[p] += 1
-
-    if verbose:
-        ic('***debug %s ***' % s)
-        ic(params)
+        # if g.nodes[n]['exposed']:
+        #     exposed += 1
+        # if g.nodes[n]['alive']:
+        #     alive += 1
+        # if g.nodes[n]['infectious']:
+        #     infectious += 1
+        # if g.nodes[n]['recovered']:
+        #     recovered += 1
+    ic('***debug %s ***' % s)
+    # print('exposed:', exposed)
+    # print('alive:', alive)
+    # print('infectious:', infectious)
+    # print('recovered:', recovered)
+    ic(params)
     return params
 
-
-def simulate(r0, N=1000, steps=100):
+def simulate(r0, steps=100):
     """Driver function to run a simulation for a given number of days with given input parameters"""
-    g = generate_graph(N, 5)
+    g = generate_graph(100000, 5)
     # g = generate_Watts(100000, 4, 0.01)
     # initialize the graph
     initialize_graph(g)
@@ -153,32 +169,13 @@ def simulate(r0, N=1000, steps=100):
         initial_infected = [0]
     [action_infect_node(g, n, 1, forced=True) for n in initial_infected]
 
-    history = []
     for s in range(steps):
         g = simulate_one_step(g)
-        p = debug_info(g, s, verbose=True)
-        history.append(p)
+        # disg(g)
+        # print('\n\n\n\n\nNEW DAY\n\n\n\n')
+        debug_info(g, s)
+    return g
 
-    return g, history
-
-
-def graph_debug(g, history):
-    # make graphs
-
-    tp = {}
-
-    for x in history[0].keys():
-        tp[x] = []
-
-    for h in history:
-        for k, v in h.items():
-            tp[k].append(v)
-
-    x = list(range(len(history)))
-    for k, v in tp.items():
-        plt.plot(x, v, label=str(k))
-    plt.legend()
-    plt.show()
 
 def generate_graph(*args):
     """Selector function for which graph generator to use"""
@@ -219,5 +216,4 @@ def generate_Watts(nodes, knn, p) -> nx.Graph:
     return watts
 
 
-r = simulate(0.0005, 100000, steps=75 )
-graph_debug(*r)
+simulate(0.2, 365)

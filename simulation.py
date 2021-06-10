@@ -163,6 +163,45 @@ def simulate(r0, N=1000, steps=100):
 
     return g, history
 
+def simulate_graph(r0, N, steps=100):
+    """Driver function to draw a simulation for a given number of days with given input parameters"""
+    g = generate_graph(N, 5)
+    # g = generate_Watts(100000, 4, 0.01)
+    # initialize the graph
+    initialize_graph(g)
+
+    N = len(g.nodes)
+    initial_infected = choice(list(range(N)), int(r0 * N))
+    if len(initial_infected) == 0:
+        initial_infected = [0]
+    [action_infect_node(g, n, 1, forced=True) for n in initial_infected]
+
+    color_map = ['green']*len(g.nodes)
+    pos = nx.spring_layout(g)
+    nx.draw(g, pos, node_color=color_map, with_labels=False)
+    for s in range(steps):
+        g = simulate_one_step(g)
+        color_map = []
+        for n in g.nodes:
+            color_n = ''
+            if g.nodes[n]['alive']:
+                color_n = 'green'
+            else:
+                color_n = 'black'
+            if g.nodes[n]['exposed']:
+                color_n = 'yellow'
+            if g.nodes[n]['infectious']:
+                color_n = 'red'
+            if g.nodes[n]['recovered']:
+                color_n = 'blue'
+            color_map.append(color_n)
+        nx.draw(g, pos, node_color=color_map, with_labels=False)
+        time.sleep(1)
+        plt.show()
+        # disg(g)
+        # print('\n\n\n\n\nNEW DAY\n\n\n\n')
+        # debug_info(g, s)
+    return g
 
 def graph_debug(g, history):
     # make graphs
@@ -221,5 +260,7 @@ def generate_Watts(nodes, knn, p) -> nx.Graph:
     return watts
 
 
-r = simulate(0.0005, 100000, steps=75 )
-graph_debug(*r)
+# r = simulate(0.0005, 100000, steps=75 )
+# graph_debug(*r)
+
+simulate_graph(0.0005, 100000, steps=75 )
